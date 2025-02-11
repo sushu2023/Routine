@@ -1,4 +1,5 @@
 import streamlit as st
+import pandas as pd
 from models.user_model import add_user, get_all_users, update_user, delete_user
 from models.fitness_model import add_fitness, get_all_fitness, update_fitness, delete_fitness
 from datetime import date
@@ -26,7 +27,8 @@ if page == "用户管理":
     # 显示用户列表（包括密码列）
     if users:
         user_data = [{"用户名": user.username, "密码": user.password, "邮箱": user.email} for user in users]
-        st.table(user_data)
+        df_users = pd.DataFrame(user_data)
+        st.dataframe(df_users, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
     else:
         st.info("暂无用户数据。")
 
@@ -79,7 +81,10 @@ elif page == "健身记录管理":
 
     # 获取所有健身记录数据
     fitness_records = get_all_fitness()
+
+    # 按日期降序排序
     if fitness_records:
+        fitness_records.sort(key=lambda x: x.activity_date, reverse=True)  # 按日期降序排列
         fitness_data = [
             {
                 "日期": record.activity_date,
@@ -89,7 +94,8 @@ elif page == "健身记录管理":
             }
             for record in fitness_records
         ]
-        st.table(fitness_data)
+        df_fitness = pd.DataFrame(fitness_data)
+        st.dataframe(df_fitness, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
     else:
         st.info("暂无健身记录数据。")
 
