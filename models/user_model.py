@@ -10,7 +10,7 @@ class User(Base):
     user_id = Column(CHAR(36), primary_key=True, nullable=False, default=lambda: str(uuid.uuid4()))
     username = Column(String(50), nullable=False)
     password = Column(String(255), nullable=False)
-    email = Column(String(100), nullable=False)  # 不为空，移除 unique 约束
+    email = Column(String(100), nullable=False)
     created_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp())
     updated_at = Column(TIMESTAMP, nullable=False, server_default=func.current_timestamp(), onupdate=func.current_timestamp())
 
