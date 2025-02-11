@@ -14,8 +14,8 @@ st.title("用户与健身管理系统")
 users = get_all_users()
 user_options = {user.username: user.user_id for user in users} if users else {}
 
-# 固定的健身活动选项
-ACTIVITIES = ["胸部", "背部", "手臂", "肩部", "腹部", "腿部", "有氧"]
+# 固定的健身活动选项（新增“未健身”）
+ACTIVITIES = ["胸部", "背部", "手臂", "肩部", "腹部", "腿部", "有氧", "未健身"]
 
 # 侧边栏选择页面
 page = st.sidebar.radio("选择功能", ["用户管理", "健身记录管理"])
@@ -98,7 +98,6 @@ elif page == "健身记录管理":
         with st.form("add_fitness_form"):
             activity_date = st.date_input("健身日期")
             activities = st.multiselect("健身活动（多选）", ACTIVITIES)
-            status = st.selectbox("健身状态", [0, 1], format_func=lambda x: "未健身" if x == 0 else "已健身")
             if users:
                 user_name = st.selectbox("用户", list(user_options.keys()))
             else:
@@ -107,12 +106,17 @@ elif page == "健身记录管理":
             submitted = st.form_submit_button("提交")
             if submitted:
                 try:
-                    if not activities:
+                    # 检查是否选择了“未健身”
+                    if "未健身" in activities and len(activities) > 1:
+                        st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
+                    elif not activities:
                         st.toast("请至少选择一项健身活动！", icon="❌")
                     elif not users:
                         st.toast("无法添加健身记录，请先添加用户！", icon="❌")
                     else:
                         user_id = user_options[user_name]
+                        status = 0 if "未健身" in activities else 1  # 设置状态
+                        activities = [] if "未健身" in activities else activities  # 清空活动列表
                         add_fitness(activity_date=activity_date, activities=activities, status=status, user_id=user_id)
                         st.toast("健身记录添加成功！", icon="✅")
                         st.rerun()  # 自动刷新页面
@@ -131,15 +135,19 @@ elif page == "健身记录管理":
                 [f"{r.activity_date} ({', '.join(r.activities)})" for r in fitness_records].index(fitness_to_update)
             ].fitness_id
             new_activities = st.multiselect("新健身活动（多选）", ACTIVITIES)
-            new_status = st.selectbox("新健身状态", [0, 1], format_func=lambda x: "未健身" if x == 0 else "已健身")
             new_user_name = st.selectbox("新用户", list(user_options.keys()))
             if st.button("更新健身记录"):
                 try:
-                    if not new_activities:
+                    # 检查是否选择了“未健身”
+                    if "未健身" in new_activities and len(new_activities) > 1:
+                        st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
+                    elif not new_activities:
                         st.toast("请至少选择一项健身活动！", icon="❌")
                     else:
                         new_user_id = user_options[new_user_name]
-                        update_fitness(fitness_id=fitness_id_to_update, activities=new_activities, status=new_status)
+                        status = 0 if "未健身" in new_activities else 1  # 设置状态
+                        new_activities = [] if "未健身" in new_activities else new_activities  # 清空活动列表
+                        update_fitness(fitness_id=fitness_id_to_update, activities=new_activities, status=status)
                         st.toast("健身记录更新成功！", icon="✅")
                         st.rerun()  # 自动刷新页面
                 except Exception as e:
