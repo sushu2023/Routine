@@ -1,5 +1,6 @@
 import uuid
-from sqlalchemy import Column, CHAR, Date, JSON, TINYINT, TIMESTAMP, func, ForeignKey
+from sqlalchemy import Column, CHAR, Date, JSON, TIMESTAMP, func, ForeignKey
+from sqlalchemy.dialects.mysql import TINYINT
 from sqlalchemy.orm import relationship
 from models.database import Base, SessionLocal
 
