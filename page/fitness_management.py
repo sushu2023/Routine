@@ -17,7 +17,7 @@ ACTIVITIES = ["胸部", "背部", "手臂", "肩部", "腹部", "腿部", "有�
 
 def fitness_management_page():
     # 页面标题
-    st.header("健身记录管理")
+    st.header("健身管理")
 
     # 获取所有健身记录数据
     fitness_records = get_all_fitness()

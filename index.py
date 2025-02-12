@@ -21,12 +21,14 @@ pages = {
     "图表": [
         st.Page(routine_dashboard_page, title="图表分析"),
     ],
-    "数据管理": [
-        st.Page(user_management_page, title="用户管理"),
-        st.Page(fitness_management_page, title="健身记录管理"),
-        st.Page(category_management_page, title="分类管理"),
-        st.Page(item_management_page, title="项目管理"),
+    "主数据": [
+        st.Page(fitness_management_page, title="健身管理"),
         st.Page(account_book_management_page, title="账单管理"),
+    ],
+    "元数据": [
+        st.Page(user_management_page, title="用户管理"),
+        st.Page(category_management_page, title="分类管理"),
+        st.Page(item_management_page, title="分类项目管理"),
     ],
 }
 
