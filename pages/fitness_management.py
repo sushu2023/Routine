@@ -1,4 +1,3 @@
-"""健身活动管理"""
 import streamlit as st
 import pandas as pd
 from models.fitness_model import add_fitness, get_all_fitness, update_fitness, delete_fitness
@@ -16,102 +15,103 @@ user_options = {user.username: user.user_id for user in users} if users else {}
 # 固定的健身活动选项
 ACTIVITIES = ["胸部", "背部", "手臂", "肩部", "腹部", "腿部", "有氧", "未健身"]
 
-# 页面标题
-st.header("健身记录管理")
+def fitness_management_page():
+    # 页面标题
+    st.header("健身记录管理")
 
-# 获取所有健身记录数据
-fitness_records = get_all_fitness()
+    # 获取所有健身记录数据
+    fitness_records = get_all_fitness()
 
-# 按日期降序排序
-if fitness_records:
-    fitness_records.sort(key=lambda x: x.activity_date, reverse=True)  # 按日期降序排列
-    fitness_data = [
-        {
-            "日期": record.activity_date,
-            "活动": ", ".join(record.activities),
-            "状态": "已健身" if record.status else "未健身",
-            "用户": next((u.username for u in users if u.user_id == record.user_id), "未知用户"),
-        }
-        for record in fitness_records
-    ]
-    df_fitness = pd.DataFrame(fitness_data)
-    st.dataframe(df_fitness, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
-else:
-    st.info("暂无健身记录数据。")
+    # 按日期降序排序
+    if fitness_records:
+        fitness_records.sort(key=lambda x: x.activity_date, reverse=True)  # 按日期降序排列
+        fitness_data = [
+            {
+                "日期": record.activity_date,
+                "活动": ", ".join(record.activities),
+                "状态": "已健身" if record.status else "未健身",
+                "用户": next((u.username for u in users if u.user_id == record.user_id), "未知用户"),
+            }
+            for record in fitness_records
+        ]
+        df_fitness = pd.DataFrame(fitness_data)
+        st.dataframe(df_fitness, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
+    else:
+        st.info("暂无健身记录数据。")
 
-# 侧边栏：添加健身记录
-with st.sidebar.expander("添加健身记录"):
-    with st.form("add_fitness_form"):
-        activity_date = st.date_input("健身日期")
-        activities = st.multiselect("健身活动（多选）", ACTIVITIES)
-        if users:
-            user_name = st.selectbox("用户", list(user_options.keys()))
-        else:
-            st.warning("请先添加用户！")
-            user_name = None
-        submitted = st.form_submit_button("提交")
-        if submitted:
-            try:
-                if "未健身" in activities and len(activities) > 1:
-                    st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
-                elif not activities:
-                    st.toast("请至少选择一项健身活动！", icon="❌")
-                elif not users:
-                    st.toast("无法添加健身记录，请先添加用户！", icon="❌")
-                else:
-                    user_id = user_options[user_name]
-                    status = 0 if "未健身" in activities else 1  # 设置状态
-                    activities = [] if "未健身" in activities else activities  # 清空活动列表
-                    add_fitness(activity_date=activity_date, activities=activities, status=status, user_id=user_id)
-                    st.toast("健身记录添加成功！", icon="✅")
+    # 侧边栏：添加健身记录
+    with st.sidebar.expander("添加健身记录"):
+        with st.form("add_fitness_form"):
+            activity_date = st.date_input("健身日期")
+            activities = st.multiselect("健身活动（多选）", ACTIVITIES)
+            if users:
+                user_name = st.selectbox("用户", list(user_options.keys()))
+            else:
+                st.warning("请先添加用户！")
+                user_name = None
+            submitted = st.form_submit_button("提交")
+            if submitted:
+                try:
+                    if "未健身" in activities and len(activities) > 1:
+                        st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
+                    elif not activities:
+                        st.toast("请至少选择一项健身活动！", icon="❌")
+                    elif not users:
+                        st.toast("无法添加健身记录，请先添加用户！", icon="❌")
+                    else:
+                        user_id = user_options[user_name]
+                        status = 0 if "未健身" in activities else 1  # 设置状态
+                        activities = [] if "未健身" in activities else activities  # 清空活动列表
+                        add_fitness(activity_date=activity_date, activities=activities, status=status, user_id=user_id)
+                        st.toast("健身记录添加成功！", icon="✅")
+                        st.rerun()  # 自动刷新页面
+                except Exception as e:
+                    st.toast(f"添加失败: {str(e)}", icon="❌")
+
+    # 侧边栏：更新健身记录
+    if fitness_records and users:
+        with st.sidebar.expander("更新健身记录"):
+            fitness_to_update = st.selectbox(
+                "选择要更新的健身记录",
+                [f"{record.activity_date} ({', '.join(record.activities)})" for record in fitness_records],
+                key="update_fitness_select"
+            )
+            fitness_id_to_update = fitness_records[
+                [f"{r.activity_date} ({', '.join(r.activities)})" for r in fitness_records].index(fitness_to_update)
+            ].fitness_id
+            new_activities = st.multiselect("新健身活动（多选）", ACTIVITIES)
+            new_user_name = st.selectbox("新用户", list(user_options.keys()))
+            if st.button("更新健身记录"):
+                try:
+                    if "未健身" in new_activities and len(new_activities) > 1:
+                        st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
+                    elif not new_activities:
+                        st.toast("请至少选择一项健身活动！", icon="❌")
+                    else:
+                        new_user_id = user_options[new_user_name]
+                        status = 0 if "未健身" in new_activities else 1  # 设置状态
+                        new_activities = [] if "未健身" in new_activities else new_activities  # 清空活动列表
+                        update_fitness(fitness_id=fitness_id_to_update, activities=new_activities, status=status)
+                        st.toast("健身记录更新成功！", icon="✅")
+                        st.rerun()  # 自动刷新页面
+                except Exception as e:
+                    st.toast(f"更新失败: {str(e)}", icon="❌")
+
+    # 侧边栏：删除健身记录
+    if fitness_records:
+        with st.sidebar.expander("删除健身记录"):
+            fitness_to_delete = st.selectbox(
+                "选择要删除的健身记录",
+                [f"{record.activity_date} ({', '.join(record.activities)})" for record in fitness_records],
+                key="delete_fitness_select"
+            )
+            fitness_id_to_delete = fitness_records[
+                [f"{r.activity_date} ({', '.join(r.activities)})" for r in fitness_records].index(fitness_to_delete)
+            ].fitness_id
+            if st.button("删除健身记录"):
+                try:
+                    delete_fitness(fitness_id=fitness_id_to_delete)
+                    st.toast("健身记录删除成功！", icon="✅")
                     st.rerun()  # 自动刷新页面
-            except Exception as e:
-                st.toast(f"添加失败: {str(e)}", icon="❌")
-
-# 侧边栏：更新健身记录
-if fitness_records and users:
-    with st.sidebar.expander("更新健身记录"):
-        fitness_to_update = st.selectbox(
-            "选择要更新的健身记录",
-            [f"{record.activity_date} ({', '.join(record.activities)})" for record in fitness_records],
-            key="update_fitness_select"
-        )
-        fitness_id_to_update = fitness_records[
-            [f"{r.activity_date} ({', '.join(r.activities)})" for r in fitness_records].index(fitness_to_update)
-        ].fitness_id
-        new_activities = st.multiselect("新健身活动（多选）", ACTIVITIES)
-        new_user_name = st.selectbox("新用户", list(user_options.keys()))
-        if st.button("更新健身记录"):
-            try:
-                if "未健身" in new_activities and len(new_activities) > 1:
-                    st.toast("选择‘未健身’时不能同时选择其他活动！", icon="❌")
-                elif not new_activities:
-                    st.toast("请至少选择一项健身活动！", icon="❌")
-                else:
-                    new_user_id = user_options[new_user_name]
-                    status = 0 if "未健身" in new_activities else 1  # 设置状态
-                    new_activities = [] if "未健身" in new_activities else new_activities  # 清空活动列表
-                    update_fitness(fitness_id=fitness_id_to_update, activities=new_activities, status=status)
-                    st.toast("健身记录更新成功！", icon="✅")
-                    st.rerun()  # 自动刷新页面
-            except Exception as e:
-                st.toast(f"更新失败: {str(e)}", icon="❌")
-
-# 侧边栏：删除健身记录
-if fitness_records:
-    with st.sidebar.expander("删除健身记录"):
-        fitness_to_delete = st.selectbox(
-            "选择要删除的健身记录",
-            [f"{record.activity_date} ({', '.join(record.activities)})" for record in fitness_records],
-            key="delete_fitness_select"
-        )
-        fitness_id_to_delete = fitness_records[
-            [f"{r.activity_date} ({', '.join(r.activities)})" for r in fitness_records].index(fitness_to_delete)
-        ].fitness_id
-        if st.button("删除健身记录"):
-            try:
-                delete_fitness(fitness_id=fitness_id_to_delete)
-                st.toast("健身记录删除成功！", icon="✅")
-                st.rerun()  # 自动刷新页面
-            except Exception as e:
-                st.toast(f"删除失败: {str(e)}", icon="❌")
+                except Exception as e:
+                    st.toast(f"删除失败: {str(e)}", icon="❌")
