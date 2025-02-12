@@ -3,9 +3,9 @@ import streamlit as st
 # 设置页面配置，默认展开侧边栏
 st.set_page_config(initial_sidebar_state="expanded")
 
-# 导入页面逻辑
-from pages.user_management import user_management_page
-from pages.fitness_management import fitness_management_page
+# 导入页面逻辑（注意路径改为 "page"）
+from page.user_management import user_management_page
+from page.fitness_management import fitness_management_page
 
 # 定义页面
 pages = {
