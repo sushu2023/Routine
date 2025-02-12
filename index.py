@@ -12,16 +12,25 @@ st.set_page_config(
 from page.routine_dashboard import routine_dashboard_page
 from page.user_management import user_management_page
 from page.fitness_management import fitness_management_page
+from page.category_management_page import category_management_page
+from page.item_management_page import item_management_page
+from page.accountbook_management_page import accountbook_management_page
 
 # 定义页面
 pages = {
     "图表": [
         st.Page(routine_dashboard_page, title="图表分析"),
     ],
-    "数据管理": [
-        st.Page(user_management_page, title="用户管理"),
+    "健身管理": [
         st.Page(fitness_management_page, title="健身记录管理"),
-        st.Page(lambda: st.write("消费记录功能待开发"), title="消费记录管理"),
+    ],
+    "账单管理": [
+        st.Page(category_management_page, title="分类管理"),
+        st.Page(item_management_page, title="项目管理"),
+        st.Page(accountbook_management_page, title="账单管理"),
+    ],
+    "用户管理": [
+        st.Page(user_management_page, title="用户管理"),
     ],
 }
 

@@ -184,27 +184,19 @@ def routine_dashboard_page():
         df_monthly["环比增长"] = df_monthly["次数"].pct_change() * 100
         df_monthly["环比增长"] = df_monthly["环比增长"].fillna(0).round(2)
 
-        # Altair 组合图
+        # Altair 基础配置
         base = alt.Chart(df_monthly).encode(
             x=alt.X("月份:T", title="月份", axis=alt.Axis(format="%Y-%m", grid=False)),
         )
 
         # 柱状图：每月健身次数
-        bar = base.mark_bar(
-            color="#F58518",  # 柱状图颜色
-            cornerRadiusTopLeft=5,  # 圆角
-            cornerRadiusTopRight=5
-        ).encode(
+        bar = base.mark_bar(color="#4C78A8").encode(
             y=alt.Y("次数:Q", title="健身次数", axis=alt.Axis(grid=False)),
             tooltip=["月份:T", "次数:Q"]
         )
 
         # 折线图：环比增长率
-        line = base.mark_line(
-            color="#4C78A8",  # 折线颜色
-            strokeWidth=2,   # 折线宽度
-            point=True        # 显示数据点
-        ).encode(
+        line = base.mark_line(color="red", point=True).encode(
             y=alt.Y("环比增长:Q", title="环比增长 (%)", axis=alt.Axis(grid=False)),
             tooltip=["月份:T", "环比增长:Q"]
         )
@@ -213,7 +205,7 @@ def routine_dashboard_page():
         combined_chart = alt.layer(bar, line).resolve_scale(
             y="independent"  # 独立的 Y 轴
         ).properties(
-            width=400,
+            width=600,
             height=300,
             title="月度趋势统计"
         ).configure_axis(
