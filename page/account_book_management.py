@@ -28,29 +28,66 @@ def account_book_management_page():
     users = get_all_users()
     user_options = {user.username: user.user_id for user in users} if users else {}
 
-    # 获取所有账单记录数据，并按日期从大到小排序
+    # 获取所有账单记录数据
     account_books = get_all_account_books()
-    if account_books:
-        # 按日期降序排序
-        account_books.sort(key=lambda x: x.date, reverse=True)
 
-        # 构建账单数据（隐藏账单 ID）
-        account_book_data = [
-            {
-                "日期": book.date,
-                "分类": next((c.name for c in categories if c.category_id == book.category_id), "未知分类"),
-                "项目": next((i.name for i in items if i.item_id == book.item_id), "未知项目"),
-                "支出金额": f"{book.expense:.2f}",
-                "退款金额": f"{book.refund:.2f}" if book.refund else "0.00",
-                "备注": book.remarks,
-                "用户": next((u.username for u in users if u.user_id == book.user_id), "未知用户"),
-            }
-            for book in account_books
-        ]
-        df_account_books = pd.DataFrame(account_book_data)
-        st.dataframe(df_account_books, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
-    else:
-        st.info("暂无账单记录数据。")
+    # 筛选器：选择用户、时间单位、选择年份
+    col1, col2, col3 = st.columns([2, 1, 2])  # 调整列宽比例
+    with col1:
+        selected_user = st.selectbox("选择用户", list(user_options.keys()))
+        user_id = user_options[selected_user]
+    with col2:
+        time_unit = st.radio("时间单位", ["按年查看", "按月查看"], horizontal=True)
+    with col3:
+        if time_unit == "按年查看":
+            selected_year = st.selectbox(
+                "选择年份",
+                sorted({record.date.year for record in account_books}, reverse=True),
+                key="year_selector"
+            )
+            filtered_records = [
+                record for record in account_books
+                if record.date.year == selected_year and record.user_id == user_id
+            ]
+        else:
+            # 提取所有年份和月份
+            all_dates = sorted({(record.date.year, record.date.month) for record in account_books}, reverse=True)
+            selected_date = st.selectbox(
+                "选择年月",
+                [f"{year}-{month:02d}" for year, month in all_dates],
+                key="month_selector"
+            )
+            selected_year, selected_month = map(int, selected_date.split("-"))
+            filtered_records = [
+                record for record in account_books
+                if record.date.year == selected_year
+                and record.date.month == selected_month
+                and record.user_id == user_id
+            ]
+
+    # 如果没有筛选到数据
+    if not filtered_records:
+        st.info("当前时间范围内暂无账单记录数据。")
+        return
+
+    # 按日期从大到小排序
+    filtered_records.sort(key=lambda x: x.date, reverse=True)
+
+    # 构建账单数据（隐藏账单 ID）
+    account_book_data = [
+        {
+            "日期": book.date,
+            "分类": next((c.name for c in categories if c.category_id == book.category_id), "未知分类"),
+            "项目": next((i.name for i in items if i.item_id == book.item_id), "未知项目"),
+            "支出金额": f"{book.expense:.2f}",
+            "退款金额": f"{book.refund:.2f}" if book.refund else "0.00",
+            "备注": book.remarks,
+            "用户": next((u.username for u in users if u.user_id == book.user_id), "未知用户"),
+        }
+        for book in filtered_records
+    ]
+    df_account_books = pd.DataFrame(account_book_data)
+    st.dataframe(df_account_books, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
 
     # 侧边栏：添加账单记录
     with st.sidebar.expander("添加账单记录"):
