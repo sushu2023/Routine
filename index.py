@@ -15,8 +15,8 @@ from page.fitness_management import fitness_management_page
 
 # 定义页面
 pages = {
-    "日常仪表盘": [
-        st.Page(routine_dashboard_page, title="日常仪表盘"),
+    "图表": [
+        st.Page(routine_dashboard_page, title="图表分析"),
     ],
     "数据管理": [
         st.Page(user_management_page, title="用户管理"),
