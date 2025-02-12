@@ -1,3 +1,4 @@
+"""健身活动管理"""
 import streamlit as st
 import pandas as pd
 from models.fitness_model import add_fitness, get_all_fitness, update_fitness, delete_fitness
