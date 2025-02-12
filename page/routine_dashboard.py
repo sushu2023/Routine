@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import altair as alt
+from datetime import datetime, date
 
 # 初始化数据库
 from models.database import init_db
@@ -14,6 +15,43 @@ user_options = {user.username: user.user_id for user in users} if users else {}
 # 获取所有健身记录数据
 from models.fitness_model import get_all_fitness
 fitness_records = get_all_fitness()
+
+def calculate_training_frequency(filtered_records, time_unit, selected_year, selected_month=None):
+    """
+    计算训练频率
+    """
+    # 获取训练天数
+    training_days = len({record.activity_date for record in filtered_records})
+
+    if time_unit == "按年查看":
+        if selected_year == datetime.now().year:  # 今年
+            start_of_year = date(selected_year, 1, 1)
+            today = date.today()
+            total_days = (today - start_of_year).days + 1
+        else:  # 往年
+            start_of_year = date(selected_year, 1, 1)
+            end_of_year = date(selected_year, 12, 31)
+            total_days = (end_of_year - start_of_year).days + 1
+    else:  # 按月查看
+        if selected_year == datetime.now().year and selected_month == datetime.now().month:  # 当月
+            start_of_month = date(selected_year, selected_month, 1)
+            today = date.today()
+            total_days = (today - start_of_month).days + 1
+        else:  # 往月
+            if selected_month == 12:
+                next_month = date(selected_year + 1, 1, 1)
+            else:
+                next_month = date(selected_year, selected_month + 1, 1)
+            start_of_month = date(selected_year, selected_month, 1)
+            total_days = (next_month - start_of_month).days
+
+    # 计算训练频率
+    if total_days > 0:
+        training_frequency = training_days / total_days
+    else:
+        training_frequency = 0
+
+    return training_frequency
 
 def routine_dashboard_page():
     st.header("图表分析")
@@ -69,20 +107,51 @@ def routine_dashboard_page():
 
     total_activities = sum(activity_counts.values())
 
+    # 计算训练频率
+    training_frequency = calculate_training_frequency(filtered_records, time_unit, selected_year, selected_month if time_unit == "按月查看" else None)
+
+    # 在同一行显示总训练次数和训练频率
     col1, col2 = st.columns(2)
     with col1:
         st.metric("总训练次数", total_activities)
+    with col2:
+        st.metric("训练频率", f"{training_frequency:.2%}")  # 格式化为百分比
 
     # 图表布局：活动分布图和月度趋势统计图并排显示
     st.subheader("图表展示")
     col_chart1, col_chart2 = st.columns(2)
 
-    # 活动分布图（条形图）
+    # 活动分布图（横向条形图）
     with col_chart1:
         st.caption("健身活动分布图")
         df_activity_counts = pd.DataFrame(list(activity_counts.items()), columns=["活动", "次数"])
         df_activity_counts = df_activity_counts.sort_values(by="次数", ascending=False)
-        st.bar_chart(df_activity_counts.set_index("活动"), use_container_width=True)
+
+        # Altair 横向条形图
+        bar_chart = alt.Chart(df_activity_counts).mark_bar(
+            color="#4C78A8",  # 条形颜色
+            cornerRadiusTopLeft=5,  # 圆角
+            cornerRadiusTopRight=5
+        ).encode(
+            x=alt.X("次数:Q", title="训练次数", axis=alt.Axis(grid=False)),  # X 轴为次数
+            y=alt.Y("活动:N", sort="-x", title="健身活动"),  # Y 轴为活动，按次数降序排列
+            tooltip=["活动:N", "次数:Q"]
+        ).properties(
+            width=400,
+            height=300,
+            title="健身活动分布"
+        ).configure_axis(
+            labelFontSize=12,
+            titleFontSize=14,
+            labelColor="#666666",  # 标签颜色
+            titleColor="#333333"   # 标题颜色
+        ).configure_title(
+            fontSize=16,
+            anchor="start",
+            color="#333333"  # 标题颜色
+        )
+
+        st.altair_chart(bar_chart, use_container_width=True)
 
     # 月度趋势统计图（组合图：柱状图+折线图）
     with col_chart2:
@@ -101,25 +170,47 @@ def routine_dashboard_page():
         df_monthly["环比增长"] = df_monthly["次数"].pct_change() * 100
         df_monthly["环比增长"] = df_monthly["环比增长"].fillna(0).round(2)
 
-        # 绘制组合图
-        fig, ax1 = plt.subplots(figsize=(8, 5))
-        ax2 = ax1.twinx()
+        # Altair 组合图
+        base = alt.Chart(df_monthly).encode(
+            x=alt.X("月份:T", title="月份", axis=alt.Axis(format="%Y-%m", grid=False)),
+        )
 
         # 柱状图：每月健身次数
-        ax1.bar(df_monthly["月份"].dt.strftime("%Y-%m"), df_monthly["次数"], color="skyblue", label="健身次数")
-        ax1.set_xlabel("月份")
-        ax1.set_ylabel("健身次数", color="skyblue")
-        ax1.tick_params(axis='y', labelcolor="skyblue")
+        bar = base.mark_bar(
+            color="#F58518",  # 柱状图颜色
+            cornerRadiusTopLeft=5,  # 圆角
+            cornerRadiusTopRight=5
+        ).encode(
+            y=alt.Y("次数:Q", title="健身次数", axis=alt.Axis(grid=False)),
+            tooltip=["月份:T", "次数:Q"]
+        )
 
         # 折线图：环比增长率
-        ax2.plot(df_monthly["月份"].dt.strftime("%Y-%m"), df_monthly["环比增长"], color="orange", marker="o", label="环比增长")
-        ax2.set_ylabel("环比增长 (%)", color="orange")
-        ax2.tick_params(axis='y', labelcolor="orange")
+        line = base.mark_line(
+            color="#4C78A8",  # 折线颜色
+            strokeWidth=2,   # 折线宽度
+            point=True        # 显示数据点
+        ).encode(
+            y=alt.Y("环比增长:Q", title="环比增长 (%)", axis=alt.Axis(grid=False)),
+            tooltip=["月份:T", "环比增长:Q"]
+        )
 
-        # 添加图例
-        fig.tight_layout()
-        ax1.legend(loc="upper left")
-        ax2.legend(loc="upper right")
+        # 合并图表
+        combined_chart = alt.layer(bar, line).resolve_scale(
+            y="independent"  # 独立的 Y 轴
+        ).properties(
+            width=400,
+            height=300,
+            title="月度趋势统计"
+        ).configure_axis(
+            labelFontSize=12,
+            titleFontSize=14,
+            labelColor="#666666",  # 标签颜色
+            titleColor="#333333"   # 标题颜色
+        ).configure_title(
+            fontSize=16,
+            anchor="start",
+            color="#333333"  # 标题颜色
+        )
 
-        # 显示图表
-        st.pyplot(fig)
+        st.altair_chart(combined_chart, use_container_width=True)
