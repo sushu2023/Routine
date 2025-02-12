@@ -28,12 +28,15 @@ def account_book_management_page():
     users = get_all_users()
     user_options = {user.username: user.user_id for user in users} if users else {}
 
-    # 获取所有账单记录数据
+    # 获取所有账单记录数据，并按日期从大到小排序
     account_books = get_all_account_books()
     if account_books:
+        # 按日期降序排序
+        account_books.sort(key=lambda x: x.date, reverse=True)
+
+        # 构建账单数据（隐藏账单 ID）
         account_book_data = [
             {
-                "账单 ID": book.account_book_id,
                 "日期": book.date,
                 "分类": next((c.name for c in categories if c.category_id == book.category_id), "未知分类"),
                 "项目": next((i.name for i in items if i.item_id == book.item_id), "未知项目"),
