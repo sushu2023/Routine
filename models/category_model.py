@@ -1,4 +1,3 @@
-import uuid
 from sqlalchemy import Column, String
 from sqlalchemy.dialects.mysql import CHAR
 from sqlalchemy.orm import relationship
@@ -8,7 +7,7 @@ class Category(Base):
     __tablename__ = 'category'
 
     # 定义字段
-    category_id = Column(CHAR(36), primary_key=True, nullable=False, default=lambda: str(uuid.uuid4()))  # UUID 主键
+    category_id = Column(CHAR(36), primary_key=True, nullable=False)  # 手动输入的主键
     name = Column(String(50), nullable=False)  # 分类名称
     remark = Column(String(255), nullable=True)  # 备注（可选）
 
@@ -16,15 +15,17 @@ class Category(Base):
     items = relationship("Item", back_populates="category")
 
 # CRUD 操作
-def add_category(name, remark=None):
+def add_category(category_id, name, remark=None):
     """
     添加分类
+    :param category_id: 分类 ID (str)，需要手动输入
     :param name: 分类名称 (str)
     :param remark: 备注 (str, 可选)
     """
     session = SessionLocal()
     try:
         new_category = Category(
+            category_id=category_id,
             name=name,
             remark=remark
         )

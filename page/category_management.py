@@ -22,14 +22,18 @@ def category_management_page():
     # 侧边栏：添加分类
     with st.sidebar.expander("添加分类"):
         with st.form("add_category_form"):
+            category_id = st.text_input("分类 ID（需唯一）")  # 新增输入框
             name = st.text_input("分类名称")
             remark = st.text_input("备注（可选）", "")
             submitted = st.form_submit_button("提交")
             if submitted:
                 try:
-                    add_category(name=name, remark=remark)
-                    st.toast("分类添加成功！", icon="✅")
-                    st.rerun()  # 自动刷新页面
+                    if not category_id:
+                        st.toast("分类 ID 不能为空！", icon="❌")
+                    else:
+                        add_category(category_id=category_id, name=name, remark=remark)
+                        st.toast("分类添加成功！", icon="✅")
+                        st.rerun()  # 自动刷新页面
                 except Exception as e:
                     st.toast(f"添加失败: {str(e)}", icon="❌")
 
