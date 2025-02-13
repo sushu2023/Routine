@@ -89,7 +89,7 @@ def routine_dashboard_page():
                 selected_year = st.selectbox(
                     "选择年份",
                     sorted({record.activity_date.year for record in fitness_records}, reverse=True),
-                    key="year_selector"
+                    key="fitness_year_selector"
                 )
                 filtered_records = [
                     record for record in fitness_records
@@ -101,7 +101,7 @@ def routine_dashboard_page():
                 selected_date = st.selectbox(
                     "选择年月",
                     [f"{year}-{month:02d}" for year, month in all_dates],
-                    key="month_selector"
+                    key="fitness_month_selector"
                 )
                 selected_year, selected_month = map(int, selected_date.split("-"))
                 filtered_records = [
@@ -237,7 +237,7 @@ def routine_dashboard_page():
                 selected_year = st.selectbox(
                     "选择年份",
                     sorted({record.date.year for record in account_books}, reverse=True),
-                    key="bill_year_selector"
+                    key="account_book_year_selector"
                 )
                 filtered_records = [
                     record for record in account_books
@@ -251,7 +251,7 @@ def routine_dashboard_page():
                 selected_date = st.selectbox(
                     "选择年月",
                     [f"{year}-{month:02d}" for year, month in all_dates],
-                    key="bill_month_selector"
+                    key="account_book_month_selector"
                 )
                 selected_year, selected_month = map(int, selected_date.split("-"))
                 filtered_records = [

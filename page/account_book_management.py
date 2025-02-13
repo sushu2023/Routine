@@ -63,7 +63,7 @@ def account_book_management_page():
             selected_year = st.selectbox(
                 "选择年份",
                 sorted({record.date.year for record in account_books}, reverse=True),
-                key="year_selector"
+                key="account_book_management_year_selector"
             )
             filtered_records = [
                 record for record in account_books
@@ -77,7 +77,7 @@ def account_book_management_page():
             selected_date = st.selectbox(
                 "选择年月",
                 [f"{year}-{month:02d}" for year, month in all_dates],
-                key="month_selector"
+                key="account_book_management_month_selector"
             )
             selected_year, selected_month = map(int, selected_date.split("-"))
             filtered_records = [
