@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from datetime import date
+from datetime import date, timedelta
 from models.account_book_model import (
     add_account_book, get_all_account_books, update_account_book, delete_account_book, get_account_book_by_id
 )
@@ -11,6 +11,18 @@ from models.user_model import get_all_users
 # 初始化数据库
 from models.database import init_db
 init_db()
+
+def adjust_salary_date(record_date):
+    """
+    调整工资日期为发放月份的前一个月的最后一天。
+    :param record_date: 工资发放的实际日期
+    :return: 调整后的日期
+    """
+    # 获取发放月份的第一天
+    first_day_of_month = record_date.replace(day=1)
+    # 前一个月的最后一天 = 当前月份第一天 - 1天
+    last_day_of_previous_month = first_day_of_month - timedelta(days=1)
+    return last_day_of_previous_month
 
 def account_book_management_page():
     # 页面标题
@@ -31,13 +43,19 @@ def account_book_management_page():
     # 获取所有账单记录数据
     account_books = get_all_account_books()
 
-    # 筛选器：选择用户、时间单位、选择年份
+    # 筛选器：选择用户、时间单位、选择年份/月份
     col1, col2, col3 = st.columns([2, 1, 2])  # 调整列宽比例
     with col1:
         selected_user = st.selectbox("选择用户", list(user_options.keys()))
         user_id = user_options[selected_user]
     with col2:
-        time_unit = st.radio("时间单位", ["按年查看", "按月查看"], horizontal=True)
+        # 时间单位筛选器，默认为“按月查看”，且顺序调整为“按月查看”在前
+        time_unit = st.radio(
+            "时间单位",
+            ["按月查看", "按年查看"],
+            index=0,  # 默认选择“按月查看”
+            horizontal=True
+        )
     with col3:
         if time_unit == "按年查看":
             selected_year = st.selectbox(
@@ -47,7 +65,9 @@ def account_book_management_page():
             )
             filtered_records = [
                 record for record in account_books
-                if record.date.year == selected_year and record.user_id == user_id
+                if (record.date.year == selected_year or 
+                    (record.date.day <= 20 and record.item_id == '1301' and adjust_salary_date(record.date).year == selected_year))
+                and record.user_id == user_id
             ]
         else:
             # 提取所有年份和月份
@@ -60,8 +80,10 @@ def account_book_management_page():
             selected_year, selected_month = map(int, selected_date.split("-"))
             filtered_records = [
                 record for record in account_books
-                if record.date.year == selected_year
-                and record.date.month == selected_month
+                if ((record.date.year == selected_year and record.date.month == selected_month) or
+                    (record.date.day <= 20 and record.item_id == '1301' and 
+                     adjust_salary_date(record.date).year == selected_year and 
+                     adjust_salary_date(record.date).month == selected_month))
                 and record.user_id == user_id
             ]
 
@@ -70,8 +92,44 @@ def account_book_management_page():
         st.info("当前时间范围内暂无账单记录数据。")
         return
 
+    # 区分工资记录和其他记录
+    final_records = []
+    for record in filtered_records:
+        if record.item_id == '1301' and record.date.day <= 20:  # 判断是否为工资记录
+            adjusted_date = adjust_salary_date(record.date)  # 调整日期为上个月的最后一天
+            # 判断调整后的日期是否属于当前筛选范围
+            if time_unit == "按年查看":
+                if adjusted_date.year == selected_year:
+                    record.date = adjusted_date  # 动态调整日期
+                    final_records.append(record)
+            else:  # 按月查看
+                if adjusted_date.year == selected_year and adjusted_date.month == selected_month:
+                    record.date = adjusted_date  # 动态调整日期
+                    final_records.append(record)
+        else:
+            # 非工资记录直接保留
+            final_records.append(record)
+
     # 按日期从大到小排序
-    filtered_records.sort(key=lambda x: x.date, reverse=True)
+    final_records.sort(key=lambda x: x.date, reverse=True)
+
+    # 计算指标：总收入、总支出、支出率
+    total_income = sum(
+        (record.expense - record.refund) for record in final_records if record.category_id == '13'
+    )  # 收入
+    total_expense = sum(
+        (record.expense - record.refund) for record in final_records if record.category_id != '13'
+    )  # 支出
+    expense_ratio = total_expense / total_income if total_income > 0 else 0  # 支出率
+
+    # 显示指标
+    col_metric1, col_metric2, col_metric3 = st.columns(3)
+    with col_metric1:
+        st.metric(label="总收入", value=f"¥{total_income:.2f}")
+    with col_metric2:
+        st.metric(label="总支出", value=f"¥{total_expense:.2f}")
+    with col_metric3:
+        st.metric(label="支出率", value=f"{expense_ratio:.2%}")
 
     # 构建账单数据（隐藏账单 ID）
     account_book_data = [
@@ -79,12 +137,11 @@ def account_book_management_page():
             "日期": book.date,
             "分类": next((c.name for c in categories if c.category_id == book.category_id), "未知分类"),
             "项目": next((i.name for i in items if i.item_id == book.item_id), "未知项目"),
-            "支出金额": f"{book.expense:.2f}",
-            "退款金额": f"{book.refund:.2f}" if book.refund else "0.00",
+            "实际金额": f"{book.expense - book.refund:.2f}",  # 实际金额 = 支出金额 - 退款金额
             "备注": book.remarks,
             "用户": next((u.username for u in users if u.user_id == book.user_id), "未知用户"),
         }
-        for book in filtered_records
+        for book in final_records
     ]
     df_account_books = pd.DataFrame(account_book_data)
     st.dataframe(df_account_books, use_container_width=True, hide_index=True)  # 使用 DataFrame 显示，隐藏索引
@@ -108,6 +165,11 @@ def account_book_management_page():
                         category_id = category_options[category_name]
                         item_id = item_options[item_name]
                         user_id = user_options[user_name] if user_name else None
+
+                        # 如果是工资记录，调整日期为上个月的最后一天
+                        if item_id == '1301' and record_date.day <= 20:  # 判断是否为工资记录
+                            record_date = adjust_salary_date(record_date)
+
                         add_account_book(
                             date=record_date,
                             category_id=category_id,
@@ -145,6 +207,11 @@ def account_book_management_page():
                     new_category_id = category_options[new_category_name]
                     new_item_id = item_options[new_item_name]
                     new_user_id = user_options[new_user_name] if new_user_name else None
+
+                    # 如果是工资记录，调整日期为上个月的最后一天
+                    if new_item_id == '1301' and new_record_date.day <= 20:  # 判断是否为工资记录
+                        new_record_date = adjust_salary_date(new_record_date)
+
                     update_account_book(
                         account_book_id=account_book_id_to_update,
                         date=new_record_date,
