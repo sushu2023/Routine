@@ -80,10 +80,19 @@ def routine_dashboard_page():
         # 用户选择、时间单位选择、年月选择器放在同一行
         col1, col2, col3 = st.columns([2, 1, 2])  # 调整列宽比例
         with col1:
-            selected_user = st.selectbox("选择用户", list(user_options.keys()))
-            user_id = user_options[selected_user]
+            fitness_selected_user = st.selectbox(
+                "选择用户", 
+                list(user_options.keys()),
+                key="fitness_user_selector"
+            )
+            user_id = user_options[fitness_selected_user]
         with col2:
-            time_unit = st.radio("时间单位", ["按年查看", "按月查看"], horizontal=True)
+            time_unit = st.radio(
+                "时间单位", 
+                ["按月查看", "按年查看"], 
+                index=0,  # 默认选择“按月查看”
+                horizontal=True
+                )
         with col3:
             if time_unit == "按年查看":
                 selected_year = st.selectbox(
@@ -228,8 +237,11 @@ def routine_dashboard_page():
         # 用户选择、时间单位选择、年月选择器放在同一行
         col1, col2, col3 = st.columns([2, 1, 2])  # 调整列宽比例
         with col1:
-            selected_user = st.selectbox("选择用户", list(user_options.keys()), key="bill_user_select")
-            user_id = user_options[selected_user]
+            account_book_selected_user = st.selectbox(
+                "选择用户", 
+                list(user_options.keys()), 
+                key="account_book_user_select")
+            user_id = user_options[account_book_selected_user]
         with col2:
             time_unit = st.radio("时间单位", ["按年查看", "按月查看"], horizontal=True, key="bill_time_unit")
         with col3:
@@ -347,6 +359,3 @@ def routine_dashboard_page():
                 title="分类支出分布"
             )
             st.altair_chart(bar_chart, use_container_width=True)
-
-# 运行页面
-routine_dashboard_page()

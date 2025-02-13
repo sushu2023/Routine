@@ -1,5 +1,7 @@
 import streamlit as st
 import pandas as pd
+from decimal import Decimal  # 导入 Decimal 模块
+
 from datetime import date, timedelta
 from models.account_book_model import (
     add_account_book, get_all_account_books, update_account_book, delete_account_book, get_account_book_by_id
@@ -122,16 +124,29 @@ def account_book_management_page():
     total_expense = sum(
         (record.expense - record.refund) for record in final_records if record.category_id != '13'
     )  # 支出
+    balance = total_income - total_expense  # 结余
     expense_ratio = total_expense / total_income if total_income > 0 else 0  # 支出率
 
     # 显示指标
-    col_metric1, col_metric2, col_metric3 = st.columns(3)
+    col_metric1, col_metric2, col_metric3, col_metric4 = st.columns(4)
     with col_metric1:
         st.metric(label="总收入", value=f"¥{total_income:.2f}")
     with col_metric2:
         st.metric(label="总支出", value=f"¥{total_expense:.2f}")
     with col_metric3:
-        st.metric(label="支出率", value=f"{expense_ratio:.2%}")
+        st.metric(
+            label="结余", 
+            value=f"￥{balance:.2f}",
+            delta=f"{total_income}-{total_expense}",
+            delta_color="off"
+        )
+    with col_metric4:
+        st.metric(
+            label="支出率", 
+            value=f"{expense_ratio:.2%}",
+            delta=f"{total_income}/{total_expense}",
+            delta_color="off"
+        )
 
     # 构建账单数据（隐藏账单 ID）
     account_book_data = [
@@ -174,8 +189,8 @@ def account_book_management_page():
                             date=record_date,
                             category_id=category_id,
                             item_id=item_id,
-                            expense=expense,
-                            refund=refund,
+                            expense=Decimal(str(expense)),  # 将 float 转换为 Decimal
+                            refund=Decimal(str(refund)),    # 将 float 转换为 Decimal
                             remarks=remarks,
                             user_id=user_id
                         )
@@ -209,8 +224,10 @@ def account_book_management_page():
                 "新项目", list(item_options.keys()),
                 index=list(item_options.keys()).index(next((i.name for i in items if i.item_id == current_record.item_id), ""))
             )
-            new_expense = st.number_input("新支出金额", min_value=0.0, step=0.01, format="%.2f", value=current_record.expense)
-            new_refund = st.number_input("新退款金额（可选）", min_value=0.0, step=0.01, format="%.2f", value=current_record.refund or 0.0)
+            # 使用 float 类型作为输入框的默认类型，并在存储时转换为 Decimal
+            new_expense = st.number_input("新支出金额", min_value=0.0, step=0.01, format="%.2f", value=float(current_record.expense))  # 转换为 float
+            new_refund = st.number_input("新退款金额（可选）", min_value=0.0, step=0.01, format="%.2f", value=float(current_record.refund or 0.0))  # 转换为 float
+        
             new_remarks = st.text_input("新备注（可选）", value=current_record.remarks or "")
             new_user_name = st.selectbox(
                 "新用户（可选）", list(user_options.keys()),
