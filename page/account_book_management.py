@@ -48,6 +48,7 @@ def account_book_management_page():
     with col1:
         selected_user = st.selectbox("选择用户", list(user_options.keys()))
         user_id = user_options[selected_user]
+
     with col2:
         # 时间单位筛选器，默认为“按月查看”，且顺序调整为“按月查看”在前
         time_unit = st.radio(
@@ -56,6 +57,7 @@ def account_book_management_page():
             index=0,  # 默认选择“按月查看”
             horizontal=True
         )
+
     with col3:
         if time_unit == "按年查看":
             selected_year = st.selectbox(
@@ -165,11 +167,9 @@ def account_book_management_page():
                         category_id = category_options[category_name]
                         item_id = item_options[item_name]
                         user_id = user_options[user_name] if user_name else None
-
                         # 如果是工资记录，调整日期为上个月的最后一天
                         if item_id == '1301' and record_date.day <= 20:  # 判断是否为工资记录
                             record_date = adjust_salary_date(record_date)
-
                         add_account_book(
                             date=record_date,
                             category_id=category_id,
@@ -195,13 +195,28 @@ def account_book_management_page():
             account_book_id_to_update = account_books[
                 [f"{b.date} ({b.account_book_id})" for b in account_books].index(account_book_to_update)
             ].account_book_id
-            new_record_date = st.date_input("新账单日期", value=date.today())
-            new_category_name = st.selectbox("新分类", list(category_options.keys()))
-            new_item_name = st.selectbox("新项目", list(item_options.keys()))
-            new_expense = st.number_input("新支出金额", min_value=0.0, step=0.01, format="%.2f")
-            new_refund = st.number_input("新退款金额（可选）", min_value=0.0, step=0.01, format="%.2f", value=0.0)
-            new_remarks = st.text_input("新备注（可选）", "")
-            new_user_name = st.selectbox("新用户（可选）", list(user_options.keys())) if users else None
+
+            # 获取当前账单记录的数据
+            current_record = get_account_book_by_id(account_book_id_to_update)
+
+            # 填充默认值
+            new_record_date = st.date_input("新账单日期", value=current_record.date)
+            new_category_name = st.selectbox(
+                "新分类", list(category_options.keys()),
+                index=list(category_options.keys()).index(next((c.name for c in categories if c.category_id == current_record.category_id), ""))
+            )
+            new_item_name = st.selectbox(
+                "新项目", list(item_options.keys()),
+                index=list(item_options.keys()).index(next((i.name for i in items if i.item_id == current_record.item_id), ""))
+            )
+            new_expense = st.number_input("新支出金额", min_value=0.0, step=0.01, format="%.2f", value=current_record.expense)
+            new_refund = st.number_input("新退款金额（可选）", min_value=0.0, step=0.01, format="%.2f", value=current_record.refund or 0.0)
+            new_remarks = st.text_input("新备注（可选）", value=current_record.remarks or "")
+            new_user_name = st.selectbox(
+                "新用户（可选）", list(user_options.keys()),
+                index=list(user_options.keys()).index(next((u.username for u in users if u.user_id == current_record.user_id), "")) if current_record.user_id else 0
+            )
+
             if st.button("更新账单记录"):
                 try:
                     new_category_id = category_options[new_category_name]

@@ -8,7 +8,7 @@ class AccountBook(Base):
     __tablename__ = 'account_book'
 
     # 定义字段
-    account_book_id = Column(CHAR(36), primary_key=True, nullable=False, default=lambda: str(uuid.uuid4()))  # UUID 主键
+    account_book_id = Column(VARCHAR(20), primary_key=True, nullable=False)  # 自定义递增 ID
     date = Column(Date, nullable=False)  # 日期
     category_id = Column(CHAR(36), ForeignKey('category.category_id', ondelete='CASCADE', onupdate='RESTRICT'), nullable=False)  # 外键关联到 category 表
     item_id = Column(CHAR(36), ForeignKey('item.item_id', ondelete='CASCADE', onupdate='RESTRICT'), nullable=False)  # 外键关联到 item 表
@@ -33,7 +33,25 @@ Category.account_books = relationship("AccountBook", order_by=AccountBook.date, 
 Item.account_books = relationship("AccountBook", order_by=AccountBook.date, back_populates="item")
 User.account_books = relationship("AccountBook", order_by=AccountBook.date, back_populates="user")
 
+
 # CRUD 操作
+def generate_account_book_id(date):
+    """
+    根据日期生成账单 ID
+    :param date: 账单日期 (datetime.date)
+    :return: 新的账单 ID (str)
+    """
+    session = SessionLocal()
+    try:
+        # 查询当天已有的账单数量
+        count = session.query(AccountBook).filter(func.date(AccountBook.date) == date).count()
+        # 生成新的 ID，格式为 YYYYMMDD + 两位递增数字
+        new_id = f"{date.strftime('%Y%m%d')}{str(count + 1).zfill(2)}"
+        return new_id
+    finally:
+        session.close()
+
+
 def add_account_book(date, category_id, item_id, expense, refund=None, remarks=None, user_id=None):
     """
     添加账单记录
@@ -47,7 +65,12 @@ def add_account_book(date, category_id, item_id, expense, refund=None, remarks=N
     """
     session = SessionLocal()
     try:
+        # 生成账单 ID
+        account_book_id = generate_account_book_id(date)
+
+        # 创建新记录
         new_record = AccountBook(
+            account_book_id=account_book_id,
             date=date,
             category_id=category_id,
             item_id=item_id,
@@ -64,6 +87,7 @@ def add_account_book(date, category_id, item_id, expense, refund=None, remarks=N
     finally:
         session.close()
 
+
 def get_all_account_books():
     """
     获取所有账单记录
@@ -74,6 +98,7 @@ def get_all_account_books():
         return records
     finally:
         session.close()
+
 
 def get_account_book_by_id(account_book_id):
     """
@@ -88,6 +113,7 @@ def get_account_book_by_id(account_book_id):
         return record
     finally:
         session.close()
+
 
 def update_account_book(account_book_id, date=None, category_id=None, item_id=None, expense=None, refund=None, remarks=None, user_id=None):
     """
@@ -127,6 +153,7 @@ def update_account_book(account_book_id, date=None, category_id=None, item_id=No
         raise e
     finally:
         session.close()
+
 
 def delete_account_book(account_book_id):
     """
