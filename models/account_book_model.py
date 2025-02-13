@@ -45,8 +45,8 @@ def generate_account_book_id(date):
     try:
         # 查询当天已有的账单数量
         count = session.query(AccountBook).filter(func.date(AccountBook.date) == date).count()
-        # 生成新的 ID，格式为 YYYYMMDD + 两位递增数字
-        new_id = f"{date.strftime('%Y%m%d')}{str(count + 1).zfill(2)}"
+        # 生成新的 ID，格式为 YYYYMMDD + 四位递增数字
+        new_id = f"{date.strftime('%Y%m%d')}{str(count + 1).zfill(4)}"
         return new_id
     finally:
         session.close()
