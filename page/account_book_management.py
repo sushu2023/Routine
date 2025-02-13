@@ -144,7 +144,7 @@ def account_book_management_page():
         st.metric(
             label="支出率", 
             value=f"{expense_ratio:.2%}",
-            delta=f"{total_income}/{total_expense}",
+            delta=f"{total_expense}/{total_income}",
             delta_color="off"
         )
 

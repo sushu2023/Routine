@@ -243,7 +243,12 @@ def routine_dashboard_page():
                 key="account_book_user_select")
             user_id = user_options[account_book_selected_user]
         with col2:
-            time_unit = st.radio("时间单位", ["按年查看", "按月查看"], horizontal=True, key="bill_time_unit")
+            time_unit = st.radio(
+                "时间单位", 
+                ["按月查看", "按年查看"],
+                index=0,  # 默认按月查看
+                horizontal=True, 
+                key="bill_time_unit")
         with col3:
             if time_unit == "按年查看":
                 selected_year = st.selectbox(
@@ -314,9 +319,19 @@ def routine_dashboard_page():
         with col_metric2:
             st.metric("总支出", f"¥{total_expense:.2f}")
         with col_metric3:
-            st.metric("结余", f"¥{balance:.2f}")
+            st.metric(
+                label="结余", 
+                value=f"¥{balance:.2f}",
+                delta=f'{total_income}-{total_expense}',
+                delta_color="off"
+            )
         with col_metric4:
-            st.metric("支出率", f"{expense_ratio:.2%}")
+            st.metric(
+                label="支出率", 
+                value=f"{expense_ratio:.2%}",
+                delta=f'{total_expense}/{total_income}',
+                delta_color="off"
+            )
         
         # 图表布局：收入支出柱形图和分类支出柱形图并排显示
         st.subheader("图表展示")
@@ -325,8 +340,9 @@ def routine_dashboard_page():
         # 收入与支出对比柱形图
         with col_chart1:
             st.caption("收入与支出对比")
-            income_data = [{"类型": "收入", "金额": total_income}]
-            expense_data = [{"类型": "支出", "金额": total_expense}]
+            # 需要将decimal.Decimal转为float
+            income_data = [{"类型": "收入", "金额": float(total_income)}]
+            expense_data = [{"类型": "支出", "金额": float(total_expense)}]
             df_income_expense = pd.DataFrame(income_data + expense_data)
             bar_chart = alt.Chart(df_income_expense).mark_bar().encode(
                 x=alt.X("类型:N", title=None),
@@ -346,7 +362,8 @@ def routine_dashboard_page():
             for record in final_records:
                 if record.category_id != '13':  # 排除收入
                     category_name = next((c.name for c in categories if c.category_id == record.category_id), "未知分类")
-                    category_expenses[category_name] = category_expenses.get(category_name, 0) + (record.expense - record.refund)
+                    # 需要将decimal.Decimal转为float
+                    category_expenses[category_name] = category_expenses.get(category_name, 0) + (float(record.expense - record.refund))
             df_category_expenses = pd.DataFrame(list(category_expenses.items()), columns=["分类", "金额"])
             df_category_expenses = df_category_expenses.sort_values(by="金额", ascending=False)
             bar_chart = alt.Chart(df_category_expenses).mark_bar(color="#F8766D").encode(
