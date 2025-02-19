@@ -205,7 +205,7 @@ def routine_dashboard_page():
                 monthly_data.append({"YearMonth": month, "Days": days_in_month})
             df_monthly = pd.DataFrame(monthly_data)
             # Altair 柱状图
-            bar_chart = alt.Chart(df_monthly).mark_bar(color="#4C78A8").encode(
+            bar_chart = alt.Chart(df_monthly).mark_bar(color="#4C78A8", size=30).encode(
                 x=alt.X("YearMonth:N", title="月份"),
                 y=alt.Y("Days:Q", title="健身天数"),
                 tooltip=["YearMonth:N", "Days:Q"]
