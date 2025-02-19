@@ -186,37 +186,31 @@ def routine_dashboard_page():
         # 月度趋势统计图（组合图：柱状图+折线图）
         with col_chart2:
             st.caption("月度趋势统计图")
-            # 统计最近几个月的健身次数
-            monthly_data = {}
-            for record in fitness_records:
-                if record.user_id == user_id and record.status == 1:  # 只统计 status 为 1 的记录
-                    month_key = record.activity_date.strftime("%Y-%m")
-                    monthly_data[month_key] = monthly_data.get(month_key, 0) + len(record.activities)
-            df_monthly = pd.DataFrame(list(monthly_data.items()), columns=["月份", "次数"])
-            df_monthly["月份"] = pd.to_datetime(df_monthly["月份"])
-            df_monthly = df_monthly.sort_values(by="月份", ascending=True)
-            # 计算环比增长率
-            df_monthly["环比增长"] = df_monthly["次数"].pct_change() * 100
-            df_monthly["环比增长"] = df_monthly["环比增长"].fillna(0).round(2)
-            # Altair 基础配置
-            base = alt.Chart(df_monthly).encode(
-                x=alt.X("月份:T", title="月份", axis=alt.Axis(format="%Y-%m", grid=False)),
-            )
-            # 柱状图：每月健身次数
-            bar = base.mark_bar(color="#4C78A8").encode(
-                y=alt.Y("次数:Q", title="健身次数", axis=alt.Axis(grid=False)),
-                tooltip=["月份:T", "次数:Q"]
-            )
-            # 折线图：环比增长率
-            line = base.mark_line(color="red", point=True).encode(
-                y=alt.Y("环比增长:Q", title="环比增长 (%)", axis=alt.Axis(grid=False)),
-                tooltip=["月份:T", "环比增长:Q"]
-            )
-            # 合并图表
-            combined_chart = alt.layer(bar, line).resolve_scale(
-                y="independent"  # 独立的 Y 轴
+            # 获取最近5个月的数据
+            today = date.today()
+            recent_months = [(today - timedelta(days=i*30)).strftime("%Y-%m") for i in range(5)]
+            recent_months = sorted(recent_months)  # 按时间顺序排序
+            monthly_data = []
+            for month in recent_months:
+                year, month_num = map(int, month.split("-"))
+                start_of_month = date(year, month_num, 1)
+                if month_num == 12:
+                    next_month = date(year + 1, 1, 1)
+                else:
+                    next_month = date(year, month_num + 1, 1)
+                days_in_month = sum(
+                    1 for record in fitness_records
+                    if record.user_id == user_id and record.status == 1 and start_of_month <= record.activity_date < next_month
+                )
+                monthly_data.append({"YearMonth": month, "Days": days_in_month})
+            df_monthly = pd.DataFrame(monthly_data)
+            # Altair 柱状图
+            bar_chart = alt.Chart(df_monthly).mark_bar(color="#4C78A8").encode(
+                x=alt.X("YearMonth:N", title="月份"),
+                y=alt.Y("Days:Q", title="健身天数"),
+                tooltip=["YearMonth:N", "Days:Q"]
             ).properties(
-                width=600,
+                width=400,
                 height=300,
                 title="月度趋势统计"
             ).configure_axis(
@@ -229,7 +223,7 @@ def routine_dashboard_page():
                 anchor="start",
                 color="#333333"  # 标题颜色
             )
-            st.altair_chart(combined_chart, use_container_width=True)
+            st.altair_chart(bar_chart, use_container_width=True)
 
     with tab2:  # 账单记录页面
         st.header("账单记录分析")

@@ -34,8 +34,10 @@ pages = {
 
 # 创建导航
 pg = st.navigation(pages)
-selected_page = pg.run()
-
-# 渲染选中的页面
-if selected_page:
-    selected_page.run()
+pg.run()
+# print(pg.title)
+# print(selected_page)
+# # 渲染选中的页面
+# if selected_page:
+#     print('yes!!!!!!!!!!!!!!!!!!!')
+#     selected_page.run()
